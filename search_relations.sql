@@ -16,7 +16,7 @@ WHERE
     p.constraint_type IN (
         'P'
     )
-    AND p.table_name like 'CLNPERSONS' -- зависит от
+    AND p.table_name like 'CLNPERSONS' -- зависит от того
 ORDER BY
     r.table_name,
     c.column_name
