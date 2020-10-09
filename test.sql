@@ -1,1 +1,1 @@
-select * from dba_tables where owner = 'PARUS'; /* Коммент на Русском*/
+select * from dba_tables where owner = 'PARUS'; /* Коммена ват на ки sd рила ва ице */
