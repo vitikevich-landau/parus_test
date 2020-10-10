@@ -19,4 +19,4 @@ WHERE
     AND p.table_name like 'CLNPERSONS' -- зависит от того
 ORDER BY
     r.table_name,
-    c.column_name
+    -- c.column_name /* Текст на кириллице  */
