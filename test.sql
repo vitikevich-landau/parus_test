@@ -1,1 +1,2 @@
-select * from dba_tables where owner = 'PARUS'; /* Текстт на кириллице */
+select * from dba_tables where owner = 'PARUS'; /* пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ */
+-- awef
