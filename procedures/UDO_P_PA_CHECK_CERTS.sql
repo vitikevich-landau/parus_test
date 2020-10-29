@@ -5,8 +5,8 @@ create or replace procedure UDO_P_PA_CHECK_CERTS is
     C$S_PAD_STRING      constant varchar2(1) := '0';
 
     -- procedures
-    /* 
-        Вставка данных из временной таблицы в постоянную 
+    /*
+        Вставка данных из временной таблицы в постоянную
     */
 
     procedure P$COMPARE_AND_INSERT is
@@ -25,11 +25,20 @@ create or replace procedure UDO_P_PA_CHECK_CERTS is
                 right join UDO_T_PA_CRLCERT_REVOKED_TEMP   T
                 on M.SERIAL_NUMBER = T.SERIAL_NUMBER
             where
-                M.SERIAL_NUMBER is null;
+                M.SERIAL_NUMBER is null
+                /*
+                    Отбросить сертификаты ранее выпущенные ранее digcert
+                */
+                and TO_DATE(SUBSTR(T.REVOCATION_DATE, 0, INSTR(T.REVOCATION_DATE, ' ') - 1), 'dd.mm.yyyy') > (
+                    select
+                        min(FROM_DATE)
+                    from
+                        DIGCERT
+                );
 
         commit;
     end P$COMPARE_AND_INSERT;
-    
+
     /*
         Очистка временной таблицы
     */
@@ -40,9 +49,9 @@ create or replace procedure UDO_P_PA_CHECK_CERTS is
 
         commit;
     end P$CLEAR_TEMP_TABLE;
-    
-    /* 
-        Блокировка учётной записи 
+
+    /*
+        Блокировка учётной записи
     */
 
     procedure P$USER_LOCK (
@@ -75,6 +84,7 @@ create or replace procedure UDO_P_PA_CHECK_CERTS is
         V$$N_PROVIDER_CODE       number;
         V$$N_RRN                 number := GEN_ID;
         V$$N_ADDR_COMPANY_RN     number;
+        V$$S_TITLE               varchar2(240);
     begin
         P_WARNMSGQUEUE_JOINS('Уведомление HTTP', 'День', 'ORACLE_HTTP', V$$N_MESSAGE_TYPE_CODE, V$$N_SCHEDULER_CODE,
                              V$$N_PROVIDER_CODE);
@@ -85,6 +95,16 @@ create or replace procedure UDO_P_PA_CHECK_CERTS is
             COMPANIES
         where
             NAME = 'КУРА_МинФин';
+
+        /*
+            Максимальная длина строки WARNMSGQUEUE.TITLE%type 240
+        */
+
+        if ( LENGTH(SMESSAGE) > 240 ) then
+            V$$S_TITLE := RPAD(SUBSTR(SMESSAGE, 0, 237), 240, '.');
+        else
+            V$$S_TITLE := SMESSAGE;
+        end if;
 
         insert into WARNMSGQUEUE (
             RN,
@@ -101,7 +121,7 @@ create or replace procedure UDO_P_PA_CHECK_CERTS is
             V$$N_RRN,
             C$$N_WARN_MSG_CATALOG,
             'PARUS',
-            SMESSAGE,
+            V$$S_TITLE,
             SMESSAGE,
             SYSDATE,
             V$$N_MESSAGE_TYPE_CODE,
@@ -141,7 +161,7 @@ create or replace procedure UDO_P_PA_CHECK_CERTS is
         );
 
     end P$SEND_MESSAGE;
-    
+
     /*
         Шаблон отправки уведомлений
     */
@@ -158,7 +178,7 @@ create or replace procedure UDO_P_PA_CHECK_CERTS is
                || ' находится в списке отозванных '
                || CR
                || 'Сотрудник: '
-               || SAGNLIST_AGNNAME
+               || NVL(SAGNLIST_AGNNAME, '"Отсутствует"')
                || ' '
                || CR
                || 'Серийный номер сертификата: '
