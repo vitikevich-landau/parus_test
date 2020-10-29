@@ -190,20 +190,20 @@ begin
             DC.SERIAL,
             DC.TO_NAME
         from
-            DIGCERT            DC
+            DIGCERT                    DC
             inner join UDO_T_PA_CRLCERT_REVOKED   CRL
             on LPAD(DC.SERIAL, C$N_SERIAL_LENGTH, C$S_PAD_STRING) = CRL.SERIAL_NUMBER
-            inner join USERCERT           UC
+            inner join USERCERT                   UC
             on UC.DIGCERT = DC.RN
-            inner join USERLIST           UL
+            inner join USERLIST                   UL
             on UL.AUTHID = UC.AUTHID
             /*
                Присоединение к найденным озерам ФИО.
                Для формирования сообщений
             */
-            left join CLNPERSONS         PS
+            left join CLNPERSONS                 PS
             on PS.PERS_AUTHID = UC.AUTHID
-            left join AGNLIST            AGL
+            left join AGNLIST                    AGL
             on PS.PERS_AGENT = AGL.RN
     ) loop 
         --DBMS_OUTPUT.PUT_LINE(I.RN);
