@@ -197,7 +197,7 @@ begin
     P$COMPARE_AND_INSERT();
 
 --    p_exception(0, 'here');
-    
+
     -- 2
     /*
        Поиск сертификатов в списках отозванных
@@ -225,15 +225,14 @@ begin
             on PS.PERS_AUTHID = UC.AUTHID
             left join AGNLIST                    AGL
             on PS.PERS_AGENT = AGL.RN
-    ) loop 
+    ) loop
         --DBMS_OUTPUT.PUT_LINE(I.RN);
         --DBMS_OUTPUT.PUT_LINE(F$MESSAGE_TEMPLATE(I.AUTHID, I.AGNNAME, I.SERIAL, I.TO_NAME));
         P$SEND_MESSAGE(I.AUTHID, F$MESSAGE_TEMPLATE(I.AUTHID, I.AGNNAME, I.SERIAL, I.TO_NAME));
 
         P$USER_LOCK(I.RN);
     end loop;
-      
-    -- 3
 
+    -- 3
     P$CLEAR_TEMP_TABLE();
 end UDO_P_PA_CHECK_CERTS;
