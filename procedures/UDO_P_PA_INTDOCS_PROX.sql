@@ -1,8 +1,13 @@
 create or replace procedure UDO_P_PA_INTDOCS_PROX (
+-- 03.11.2020 Добавлены доп параметры. Парус-Алтай.
     NCOMPANY       in   number,                                            -- организация
     NIDENT         in   number,                                            -- отмеченные записи
     /* add */
-    NPREF_ENABLE   in   number                                             -- печатать префкис да/нет
+    NPREF_ENABLE   in   number,                                            -- печатать префкис да/нет
+    dDATE_FROM     in   date,                                              -- дата выдачи
+    dDATE_TO       in   date,                                              -- доверенность действительна по
+    nDOC           in   varchar2,                                          -- документ основание или входящий документ
+    sAGN           in   varchar2                                           -- контрагент кому выдано
 ) as
 
   -- константы листа
@@ -103,6 +108,9 @@ begin
             DT2.DOCCODE         SVALID_DOCTYPE,
             /* add */
             DT2.DOCNAME         SVALID_DOCNAME,
+            DT3.DOCNAME         SIN_DOCNAME,
+            ID.IN_DOCNUMB    SIN_DOCNUMB,
+            ID.IN_DOCDATE    DIN_DOCDATE,
             /*  */
             ID.VALID_DOCNUMB    SVALID_DOCNUMB,
             ID.VALID_DOCDATE    DVALID_DOCDATE,
@@ -127,6 +135,7 @@ begin
             AG1.ADDR_HOUSE      SAGFR_ADDR_HOUSE,
             AG1.ADDR_BLOCK      SAGFR_ADDR_BLOCK,
             AG1.ADDR_FLAT       SAGFR_ADDR_FLAT,
+--- mod
             AG2.AGNFAMILYNAME   SAGTO_FAMILYNAME,
             AG2.AGNFIRSTNAME    SAGTO_FIRSTNAME,
             AG2.AGNLASTNAME     SAGTO_LASTNAME,
@@ -140,6 +149,7 @@ begin
               || ' '
               || TO_CHAR(D_YEAR(AG2.PASSPORT_WHEN))
               || ' г.' ) SAGTO_SPASSPORT_WHEN,
+---
             (
                 select
                     NOTE
@@ -196,6 +206,7 @@ begin
             JURPERSONS   J,
             DOCTYPES     DT1,
             DOCTYPES     DT2,
+            DOCTYPES     DT3,
             AGNLIST      AG1,
             AGNLIST      AG2,
             AGNLIST      JA,
@@ -222,8 +233,11 @@ begin
             and ID.JUR_PERS = J.RN
             and ID.DOC_TYPE = DT1.RN
             and ID.VALID_DOCTYPE = DT2.RN (+)
+            and ID.IN_DOCTYPE = DT3.RN (+)
             and ID.AGENT_FROM = AG1.RN (+)
-            and ID.AGENT_TO = AG2.RN (+)
+           -- and ID.AGENT_TO = AG2.RN (+)
+
+            and AG2.AGNABBR = sAGN --add по мнемокоду из параметров
             and J.AGENT = JA.RN (+)
             and JA.RN = VACC.AGNRN (+)
             and VACC.AGNACC = JAA.RN (+)
@@ -300,8 +314,11 @@ begin
             PRSG_EXCEL.CELL_VALUE_WRITE(NUMB_DOCD, TRIM(TREC.SDOC_NUMBER));
         end if;
 
-        PRSG_EXCEL.CELL_VALUE_WRITE(SDATE_ISSUE, TREC.SDATE_ISSUE);
-        PRSG_EXCEL.CELL_VALUE_WRITE(SDATE_EXP, TREC.SDATE_EXP);
+--        PRSG_EXCEL.CELL_VALUE_WRITE(SDATE_ISSUE, TREC.SDATE_ISSUE);
+--        PRSG_EXCEL.CELL_VALUE_WRITE(SDATE_EXP, TREC.SDATE_EXP);
+        PRSG_EXCEL.CELL_VALUE_WRITE(SDATE_ISSUE, to_char(dDATE_FROM, 'dd.mm.yyyy'));
+        PRSG_EXCEL.CELL_VALUE_WRITE(SDATE_EXP, to_char(dDATE_TO, 'dd.mm.yyyy'));
+
         PRSG_EXCEL.CELL_VALUE_WRITE(PAYER, NVL(TREC.SJP_AGNNAME, TREC.SJP_AGNABBR)
                                            || ' '
                                            || LTRIM(TREC.SJP_ADDR_POST || ', ', ', ')
@@ -338,7 +355,9 @@ begin
                                                          || LTRIM(TREC.SAGFR_ADDR_BLOCK || ', ', ', ')
                                                          || TREC.SAGFR_ADDR_FLAT, ', '));
 
-        PRSG_EXCEL.CELL_VALUE_WRITE(VALID, TREC.SVALID_DOCTYPE
+
+     if nDOC = 'документ-основание' then
+        PRSG_EXCEL.CELL_VALUE_WRITE(VALID,  TREC.SVALID_DOCNAME /*TREC.SVALID_DOCTYPE*/
                                            || ' № '
                                            || TREC.SVALID_DOCNUMB
                                            || ' от '
@@ -349,10 +368,28 @@ begin
                                             || TREC.SVALID_DOCNUMB
                                             || ' от '
                                             || TO_CHAR(TREC.DVALID_DOCDATE, 'dd.mm.yyyy'));
+    else
+        PRSG_EXCEL.CELL_VALUE_WRITE(VALID,  TREC.SIN_DOCNAME /*TREC.SVALID_DOCTYPE*/
+                                           || ' № '
+                                           || TREC.SIN_DOCNUMB
+                                           || ' от '
+                                           || TO_CHAR(TREC.DIN_DOCDATE, 'dd.mm.yyyy'));
+
+
+        PRSG_EXCEL.CELL_VALUE_WRITE(VALIDD, TREC.SIN_DOCNAME /*TREC.SVALID_DOCTYPE*/
+                                            || ' № '
+                                            || TREC.SIN_DOCNUMB
+                                            || ' от '
+                                            || TO_CHAR(TREC.DIN_DOCDATE, 'dd.mm.yyyy'));
+    end if;
+
     -- таблица 1
 
-        PRSG_EXCEL.CELL_VALUE_WRITE(DDOC_DATE, TO_CHAR(TREC.DDOC_DATE, 'dd.mm.yyyy'));
-        PRSG_EXCEL.CELL_VALUE_WRITE(DDOC_DATE_MOR, TO_CHAR(TREC.DDOC_DATE + 14, 'dd.mm.yyyy'));
+--        PRSG_EXCEL.CELL_VALUE_WRITE(DDOC_DATE, TO_CHAR(TREC.DDOC_DATE, 'dd.mm.yyyy'));
+--        PRSG_EXCEL.CELL_VALUE_WRITE(DDOC_DATE_MOR, TO_CHAR(TREC.DDOC_DATE + 14, 'dd.mm.yyyy'));
+        PRSG_EXCEL.CELL_VALUE_WRITE(DDOC_DATE, TO_CHAR(dDATE_FROM, 'dd.mm.yyyy'));
+        PRSG_EXCEL.CELL_VALUE_WRITE(DDOC_DATE_MOR, TO_CHAR(dDATE_TO, 'dd.mm.yyyy'));
+
         PRSG_EXCEL.CELL_VALUE_WRITE(POST_NAME, TREC.SAGTO_EMPPOST
                                                || ' '
                                                || LTRIM(TREC.SAGTO_FAMILYNAME || ' ')
