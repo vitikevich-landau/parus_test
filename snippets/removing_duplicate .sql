@@ -11,13 +11,16 @@ where
     );
 
 
-delete from EMP
+select
+    *
+from
+    UDO_T_PA_CRLCERT_REVOKED
 where
     rowid not in (
         select
             max(rowid)
         from
-            EMP
+            UDO_T_PA_CRLCERT_REVOKED
         group by
-            EMPNO
+            SERIAL_NUMBER
     );
