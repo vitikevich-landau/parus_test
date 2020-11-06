@@ -51,6 +51,26 @@ create or replace procedure UDO_P_PA_CHECK_CERTS is
     end P$CLEAR_TEMP_TABLE;
 
     /*
+        Удаление дубликатов из временной тадлицы
+    */
+
+    procedure P$REMOVE_DUPLICATES is
+    begin
+        delete from UDO_T_PA_CRLCERT_REVOKED_TEMP
+        where
+            rowid not in (
+                select
+                    max(rowid)
+                from
+                    UDO_T_PA_CRLCERT_REVOKED_TEMP
+                group by
+                    SERIAL_NUMBER
+            );
+
+        commit;
+    end P$REMOVE_DUPLICATES;
+
+    /*
         Блокировка учётной записи
     */
 
@@ -72,6 +92,10 @@ create or replace procedure UDO_P_PA_CHECK_CERTS is
 
         commit;
     end P$USER_LOCK;
+
+    /*
+        Отправка уведомления о блокировке
+    */
 
     procedure P$SEND_MESSAGE (
         STO        in   varchar2,     -- ADDR_USER_CODE
@@ -194,11 +218,14 @@ create or replace procedure UDO_P_PA_CHECK_CERTS is
 
 begin
     -- 1
+    P$REMOVE_DUPLICATES();
+
+    -- 2
     P$COMPARE_AND_INSERT();
 
 --    p_exception(0, 'here');
 
-    -- 2
+    -- 3
     /*
        Поиск сертификатов в списках отозванных
     */
@@ -233,6 +260,7 @@ begin
         P$USER_LOCK(I.RN);
     end loop;
 
-    -- 3
+    -- 4
+
     P$CLEAR_TEMP_TABLE();
 end UDO_P_PA_CHECK_CERTS;
