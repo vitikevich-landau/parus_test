@@ -245,7 +245,7 @@ begin
             inner join USERLIST                   UL
             on UL.AUTHID = UC.AUTHID
             /*
-               Присоединение к найденным озерам ФИО.
+               Присоединение к найденным юзерам ФИО.
                Для формирования сообщений
             */
             left join CLNPERSONS                 PS
