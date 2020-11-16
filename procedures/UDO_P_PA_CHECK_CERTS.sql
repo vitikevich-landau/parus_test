@@ -253,9 +253,28 @@ begin
             left join AGNLIST                    AGL
             on PS.PERS_AGENT = AGL.RN
     ) loop
-        --DBMS_OUTPUT.PUT_LINE(I.RN);
-        --DBMS_OUTPUT.PUT_LINE(F$MESSAGE_TEMPLATE(I.AUTHID, I.AGNNAME, I.SERIAL, I.TO_NAME));
         P$SEND_MESSAGE(I.AUTHID, F$MESSAGE_TEMPLATE(I.AUTHID, I.AGNNAME, I.SERIAL, I.TO_NAME));
+
+        /*
+            Рассылка уведомлений, дополнительные словари CERT_REV
+        */
+
+        begin
+            for J in (
+                select
+                    SSTR_VALUE
+                from
+                    V_EXTRA_DICTS_VALUES
+                where
+                    SCODE = 'CERT_REV'
+            ) loop
+                P$SEND_MESSAGE(J.SSTR_VALUE, F$MESSAGE_TEMPLATE(I.AUTHID, I.AGNNAME, I.SERIAL, I.TO_NAME));
+            end loop;
+
+        exception
+            when others then
+                null;
+        end;
 
         P$USER_LOCK(I.RN);
     end loop;
