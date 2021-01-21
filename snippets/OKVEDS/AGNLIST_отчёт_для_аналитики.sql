@@ -73,7 +73,7 @@ from
     AGNLIST A
 where
     A.AGNTYPE = 0
-    and A.RN not in (
+    and A.RN in (
         select
             A.RN
         from
