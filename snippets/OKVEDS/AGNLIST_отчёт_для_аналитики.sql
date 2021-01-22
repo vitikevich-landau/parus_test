@@ -103,6 +103,7 @@ select
 from
     (
         select
+            A.RN,
             A.AGNABBR,
             A.AGNNAME,
             A.FULLNAME,
