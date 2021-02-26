@@ -1,30 +1,62 @@
 create or replace procedure UDO_P_PA_KITCHEN_ATTENDANT is
-    L_SMSG     varchar2(200);
-    REQ        UTL_HTTP.REQ;
-    RES        UTL_HTTP.RESP;
-    SCONTENT   varchar2(4000);
+
+    REQ           UTL_HTTP.REQ;
+    RES           UTL_HTTP.RESP;
+    SCONTENT      varchar2(4000);
+    L_SMSG        varchar(400);
+    L_NNUM        number;
+    L_NMAX        number;
+    L_SFULLNAME   varchar2(160);
 begin
-    begin
-        select
-            T.FULLNAME
-        into L_SMSG
-        from
-            UDO_T_PA_KITCHEN_ATTENDANT T
-        where
-            T.DAY_NUMBER = MOD(TO_NUMBER(TO_CHAR(SYSDATE + 1, 'J')), 7)
-            and T.WEEK_NUMBER = TRUNC((TO_CHAR(SYSDATE, 'dd') + MOD(TRUNC(SYSDATE, 'mm') - to_date('03.01.2005', 'dd.mm.yyyy'), 7
-            ) + 6) / 7);
+    select
+        NUM
+    into L_NNUM
+    from
+        UDO_T_PA_KITCHEN_ATTENDANT
+    where
+        IS_ACTIVE = 1;
 
-    exception
-        when others then
-            L_SMSG := null;
-    end;
+    select
+        max(NUM)
+    into L_NMAX
+    from
+        UDO_T_PA_KITCHEN_ATTENDANT;
 
-    if ( L_SMSG is null ) then
+    select
+        FULLNAME
+    into L_SFULLNAME
+    from
+        UDO_T_PA_KITCHEN_ATTENDANT
+    where
+        NUM = L_NNUM;
+
+    -- Обнулить текущего
+
+    update UDO_T_PA_KITCHEN_ATTENDANT
+    set
+        IS_ACTIVE = 0
+    where
+        NUM = L_NNUM;
+
+    if ( L_NNUM >= L_NMAX ) then
+        L_NNUM := 1;
+    else
+        L_NNUM := L_NNUM + 1;
+    end if;
+
+    -- Установить следующего
+
+    update UDO_T_PA_KITCHEN_ATTENDANT
+    set
+        IS_ACTIVE = 1
+    where
+        NUM = L_NNUM;
+
+    if ( L_SFULLNAME is null ) then
         L_SMSG := 'На сегодня дежурный не назначен. Кто-то должен вынести мусор!';
     else
         L_SMSG := 'Сегодня дежурит: '
-                  || L_SMSG
+                  || L_SFULLNAME
                   || '\r\n'
                   || 'Не забудьте вынести мусор!';
     end if;
@@ -40,4 +72,5 @@ begin
     UTL_HTTP.WRITE_TEXT(REQ, SCONTENT);
     RES        := UTL_HTTP.GET_RESPONSE(REQ);
 
+    commit;
 end UDO_P_PA_KITCHEN_ATTENDANT;
