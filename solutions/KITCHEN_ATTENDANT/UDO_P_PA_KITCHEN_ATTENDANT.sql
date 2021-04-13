@@ -1,30 +1,41 @@
 create or replace procedure UDO_P_PA_KITCHEN_ATTENDANT is
+-- Дежурный сегодня, информирование и смена
 
     REQ           UTL_HTTP.REQ;
     RES           UTL_HTTP.RESP;
     SCONTENT      varchar2(4000);
     L_SMSG        varchar(400);
     L_NNUM        number;
-    L_NMAX        number;
+--    L_NMAX        number;
+    L_NEXT        number;
     L_SFULLNAME   varchar2(160);
 begin
     select
         NUM
-    into L_NNUM
+    into L_NNUM -- текущий
     from
         UDO_T_PA_KITCHEN_ATTENDANT
     where
         IS_ACTIVE = 1;
 
     select
-        max(NUM)
-    into L_NMAX
+        nvl(min(NUM),1)
+    into L_NEXT -- следующий
     from
-        UDO_T_PA_KITCHEN_ATTENDANT;
+        UDO_T_PA_KITCHEN_ATTENDANT
+        where NUM > L_NNUM
+        and SKIPPED = 0
+        ;
+
+--    select
+--        max(NUM)
+--    into L_NMAX
+--    from
+--        UDO_T_PA_KITCHEN_ATTENDANT;
 
     select
         FULLNAME
-    into L_SFULLNAME
+    into L_SFULLNAME -- фио
     from
         UDO_T_PA_KITCHEN_ATTENDANT
     where
@@ -34,15 +45,16 @@ begin
 
     update UDO_T_PA_KITCHEN_ATTENDANT
     set
-        IS_ACTIVE = 0
+        IS_ACTIVE = 0,
+        LAST_ACTIVE = sysdate
     where
         NUM = L_NNUM;
 
-    if ( L_NNUM >= L_NMAX ) then
-        L_NNUM := 1;
-    else
-        L_NNUM := L_NNUM + 1;
-    end if;
+--    if ( L_NNUM >= L_NMAX ) then
+--        L_NNUM := 1;
+--    else
+--        L_NNUM := L_NNUM + 1;
+--    end if;
 
     -- Установить следующего
 
@@ -50,7 +62,7 @@ begin
     set
         IS_ACTIVE = 1
     where
-        NUM = L_NNUM;
+        NUM = L_NEXT;
 
     if ( L_SFULLNAME is null ) then
         L_SMSG := 'На сегодня дежурный не назначен. Кто-то должен вынести мусор!';
