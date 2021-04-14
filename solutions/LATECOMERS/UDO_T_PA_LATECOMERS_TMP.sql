@@ -1,4 +1,5 @@
 create table UDO_T_PA_LATECOMERS_TMP (
+    ID         number(17),
     FULLNAME   varchar2(100),
     M          varchar2(2),
     Y          varchar2(4),
